@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARMv7 Game of Life</title>
+  <style>
+    :root {
+      --bg: #10140e;
+      --panel: #171c13;
+      --ink: #e7e1d1;
+      --muted: #8f987f;
+      --line: #2a3222;
+      --hot: #3c3414;
+      --hot-ink: #f3e4ad;
+      --amber: #e0b15a;
+      --green: #8fce63;
+      --red: #e23d32;
+      --bezel: #24281f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.45 ui-sans-serif, system-ui, sans-serif;
+    }
+    header, main, footer { padding-left: 20px; padding-right: 20px; }
+    header {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding-top: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 { font-size: 20px; font-weight: 650; margin: 0; letter-spacing: -0.02em; }
+    .lede { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+    .lede code, p code, .meta code { font-family: ui-monospace, monospace; color: var(--amber); font-size: 0.92em; }
+    .run {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    #rate {
+      font-family: ui-monospace, monospace;
+      color: var(--green);
+      min-width: 9ch;
+      text-align: right;
+    }
+    button {
+      font: inherit;
+      color: var(--ink);
+      background: #23291c;
+      border: 1px solid #3c4630;
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--amber); }
+    button:disabled { opacity: 0.45; cursor: default; }
+    button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+      gap: 18px;
+      padding-top: 16px;
+      padding-bottom: 12px;
+      min-height: 0;
+    }
+    .stage, .listing-wrap {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      min-width: 0;
+    }
+    .stage { padding: 10px 12px 12px; }
+    .bezel {
+      background: var(--bezel);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .bezel-label, .col-head, .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    canvas {
+      display: block;
+      width: min(100%, calc((100vh - 520px) * 4 / 3));
+      max-width: 100%;
+      height: auto;
+      aspect-ratio: 4 / 3;
+      background: #000;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      margin: 8px auto 0;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: end;
+      margin-top: 12px;
+    }
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-areas: ". w ." "a s d";
+      gap: 6px;
+    }
+    .pad button, .wide {
+      min-height: 48px;
+      font-family: ui-monospace, monospace;
+    }
+    .pad button small, .wide small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+    }
+    #key-w { grid-area: w; }
+    #key-a { grid-area: a; }
+    #key-s { grid-area: s; }
+    #key-d { grid-area: d; }
+    #status { color: var(--ink); text-transform: none; letter-spacing: 0; font-size: 14px; margin-top: 8px; }
+    .listing-wrap { display: flex; flex-direction: column; max-height: calc(100vh - 150px); }
+    .col-head {
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 13px;
+    }
+    #listing { overflow: auto; flex: 1; }
+    #source {
+      margin: 0;
+      padding: 8px 12px 16px;
+      font: 13px/1.5 ui-monospace, monospace;
+      white-space: pre;
+    }
+    details { border-top: 1px solid var(--line); }
+    summary { cursor: pointer; padding: 10px 12px; color: var(--muted); }
+    #c-source {
+      margin: 0;
+      padding: 0 12px 16px;
+      max-height: 40vh;
+      overflow: auto;
+      font: 12px/1.45 ui-monospace, monospace;
+      white-space: pre;
+    }
+    footer {
+      padding-bottom: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    footer a { color: var(--amber); }
+    @media (min-width: 901px) {
+      body {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      main { flex: 1; min-height: 0; overflow: hidden; }
+      .stage, .listing-wrap { min-height: 0; max-height: 100%; }
+      .stage { overflow: auto; }
+      .listing-wrap { height: 100%; }
+      footer { padding-top: 0; }
+    }
+    @media (max-width: 900px) {
+      header { flex-direction: column; align-items: stretch; }
+      .run { justify-content: space-between; }
+      main { grid-template-columns: 1fr; }
+      .listing-wrap { max-height: 70vh; }
+      canvas { width: min(100%, 640px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>ARMv7 Game of Life</h1>
+      <p class="lede">The picture is the VGA buffer at <code>0xC8000000</code>. Keys are PS/2 bytes at <code>0xFF200100</code>. Both are produced by the machine code in <code>part3.c</code>, running in this browser.</p>
+    </div>
+    <div class="run">
+      <span id="rate">—</span>
+      <button type="button" id="pause" disabled>Pause</button>
+      <button type="button" id="reset" disabled>Reset</button>
+    </div>
+  </header>
+  <main>
+    <section class="stage">
+      <div class="bezel">
+        <div class="bezel-label"><span>Pixel buffer</span><span>320×240 RGB565</span></div>
+        <canvas id="screen" width="320" height="240" aria-label="VGA pixel buffer"></canvas>
+      </div>
+      <p id="status" role="status">Loading the ARM emulator.</p>
+      <div class="controls">
+        <div class="pad">
+          <button type="button" id="key-w" data-code="1d" disabled>W<small>1D</small></button>
+          <button type="button" id="key-a" data-code="1c" disabled>A<small>1C</small></button>
+          <button type="button" id="key-s" data-code="1b" disabled>S<small>1B</small></button>
+          <button type="button" id="key-d" data-code="23" disabled>D<small>23</small></button>
+        </div>
+        <button type="button" class="wide" data-code="29" disabled>Space<small>toggle cell · 29</small></button>
+        <button type="button" class="wide" data-code="31" disabled>N<small>next generation · 31</small></button>
+      </div>
+
+    </section>
+    <section class="listing-wrap">
+      <div class="col-head"><span>Assembly from part3.c</span></div>
+      <div id="listing"><pre id="source"></pre></div>
+      <details>
+        <summary>C that calls this assembly</summary>
+        <pre id="c-source"></pre>
+      </details>
+    </section>
+  </main>
+  <footer>
+    <p>The CPU is <a href="https://www.unicorn-engine.org/">Unicorn</a> (<a href="UNICORN-LICENSE.txt">GPLv2</a>).</p>
+  </footer>
+  <script src="unicorn_arm.js"></script>
+  <script src="sim.js"></script>
+</body>
+</html>
