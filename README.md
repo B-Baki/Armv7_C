@@ -70,16 +70,6 @@ Produces `docs/part3.elf`, `docs/drivers.s`, `docs/program.json`, and a copy of 
 
 ---
 
-## Skills this demonstrates
-
-- Freestanding embedded C on ARMv7-A (no OS, no libc)
-- Handwritten AAPCS-friendly assembly for memory-mapped I/O
-- VGA framebuffer programming and PS/2 keyboard scancodes
-- Custom linker script + bare-metal startup
-- Bridging silicon/sim targets to a browser demo (ELF → Unicorn)
-
----
-
 ## Repository layout
 
 ```text
